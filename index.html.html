@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exec OS — Ashea Kanji</title>
+
+<style>
+:root {
+  --bg:#1e2130;--bg2:#252a3a;--bg3:#2d3245;--bg4:#353b52;
+  --border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);
+  --text:#edf0f7;--text2:#a8b0c8;--text3:#6070a0;
+  --accent:#8b7cf6;--accent2:#b8aff9;
+  --green:#4ade9e;--amber:#fbbf45;--red:#f87171;--blue:#60a5fa;
+  --mono:'SF Mono','Fira Code','Cascadia Code','Courier New',monospace;--sans:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh}
+.layout{display:flex;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{width:200px;background:var(--bg2);border-right:1px solid var(--border);padding:20px 0;position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100;flex-shrink:0}
+.logo{padding:0 16px 18px;border-bottom:1px solid var(--border);margin-bottom:14px}
+.logo-name{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent2);letter-spacing:.1em}
+.logo-sub{font-size:10px;color:var(--text3);margin-top:2px;font-family:var(--mono)}
+.nav-group{padding:0 10px;margin-bottom:6px}
+.nav-group-label{font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.14em;text-transform:uppercase;padding:0 6px;margin-bottom:4px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--text2);transition:all .12s;border:1px solid transparent;margin-bottom:1px}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--bg4);color:var(--text);border-color:var(--border2)}
+.nav-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sidebar-score{padding:16px;margin-top:12px;border-top:1px solid var(--border)}
+.score-val{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--accent2)}
+.score-lbl{font-size:10px;color:var(--text3);margin-top:2px;text-transform:uppercase;letter-spacing:.07em}
+.score-bar{height:3px;background:var(--bg4);border-radius:2px;margin-top:8px}
+.score-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .4s}
+.clock{font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:10px}
+
+/* MAIN */
+.main{margin-left:200px;padding:28px 28px;flex:1;min-width:0}
+.page{display:none}.page.active{display:block}
+.page-eyebrow{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px}
+.page-title{font-size:20px;font-weight:500;margin-bottom:22px}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:12px}
+.card-label{font-family:var(--mono);font-size:9px;font-weight:600;color:var(--text3);letter-spacing:.13em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+
+/* METRIC */
+.metric{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center}
+.metric-v{font-family:var(--mono);font-size:24px;font-weight:600;color:var(--text)}
+.metric-l{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-top:3px}
+
+/* SCHEDULE BLOCKS */
+.block{display:flex;align-items:center;gap:12px;padding:11px 13px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;margin-bottom:5px;cursor:pointer;transition:all .12s;position:relative;overflow:hidden}
+.block::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.block.typing::before{background:var(--accent)}
+.block.modeling::before{background:var(--green)}
+.block.pptx::before{background:var(--amber)}
+.block.reading::before{background:var(--blue)}
+.block.fitness::before{background:#7be0b5}
+.block.admin::before{background:var(--text3)}
+.block.break::before{background:#f07070}
+.block.transition::before{background:var(--text3)}
+.block:hover{border-color:var(--border2)}
+.block.done{opacity:.38}
+.block.done .block-name{text-decoration:line-through}
+.block.current{border-color:rgba(139,124,246,.45);background:rgba(139,124,246,.07)}
+.block.overdue{border-color:rgba(240,82,82,.3)}
+.block-check{width:17px;height:17px;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px}
+.block.done .block-check{background:var(--green);border-color:var(--green)}
+.block-time{font-family:var(--mono);font-size:10px;color:var(--text3);min-width:50px}
+.tag{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:4px}
+.tag.typing{background:rgba(139,124,246,.18);color:var(--accent2)}
+.tag.modeling{background:rgba(74,222,158,.12);color:var(--green)}
+.tag.pptx{background:rgba(251,191,69,.12);color:var(--amber)}
+.tag.reading{background:rgba(96,165,250,.12);color:var(--blue)}
+.tag.fitness{background:rgba(74,222,158,.08);color:#4ade9e}
+.tag.admin{background:rgba(255,255,255,.06);color:var(--text2)}
+.tag.break{background:rgba(248,113,113,.1);color:var(--red)}
+.tag.transition{background:rgba(255,255,255,.05);color:var(--text3)}
+.block-name{flex:1;font-size:13px;font-weight:400}
+.block-dur{font-family:var(--mono);font-size:10px;color:var(--text3)}
+.live-pill{font-family:var(--mono);font-size:9px;color:var(--accent);letter-spacing:.06em;animation:pulse 1.8s infinite;font-weight:600}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* COACH */
+.coach-box{background:rgba(139,124,246,.08);border:1px solid rgba(139,124,246,.2);border-left:3px solid var(--accent);border-radius:8px;padding:15px;font-size:13px;line-height:1.75;color:var(--text)}
+.coach-note{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;font-size:12px;color:var(--text2);line-height:1.65;margin-top:10px;font-family:var(--mono)}
+
+/* CHIPS */
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.chip{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:5px 11px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;transition:all .12s}
+.chip:hover{border-color:var(--accent);color:var(--accent2)}
+.chip.active{background:rgba(124,106,245,.18);border-color:var(--accent);color:var(--accent2)}
+
+/* BUTTONS */
+.btn{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.07em;text-transform:uppercase;padding:8px 15px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;transition:all .12s}
+.btn:hover{background:var(--bg3);color:var(--text)}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.primary:hover{opacity:.85}
+.btn.green{background:rgba(61,207,142,.15);color:var(--green);border-color:rgba(61,207,142,.3)}
+.btn.red{background:rgba(240,82,82,.1);color:var(--red);border-color:rgba(240,82,82,.25)}
+
+/* INPUTS */
+input[type=text],input[type=time],textarea,select{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--sans);font-size:13px;padding:8px 11px;width:100%;outline:none;transition:border-color .12s}
+input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+label{font-size:11px;color:var(--text2);display:block;margin-bottom:5px}
+.field{margin-bottom:13px}
+
+/* SIF */
+.stock-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stock-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:13px;transition:border-color .12s}
+.stock-card:hover{border-color:var(--border2)}
+.stock-ticker{font-family:var(--mono);font-size:14px;font-weight:600}
+.stock-co{font-size:11px;color:var(--text3);margin-top:2px}
+.stock-sector{font-size:10px;color:var(--text3);margin-top:1px}
+.spill{font-size:9px;font-family:var(--mono);padding:2px 7px;border-radius:10px;display:inline-block;margin-top:6px}
+.spill.todo{background:rgba(255,255,255,.06);color:var(--text3)}
+.spill.wip{background:rgba(251,191,69,.12);color:var(--amber)}
+.spill.drafted{background:rgba(96,165,250,.12);color:var(--blue)}
+.spill.done2{background:rgba(74,222,158,.12);color:var(--green)}
+
+/* DEADLINE */
+.dl-row{display:flex;align-items:center;gap:12px;padding:10px 13px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;margin-bottom:5px}
+.dl-date{font-family:var(--mono);font-size:10px;color:var(--text3);min-width:75px}
+.dl-name{flex:1;font-size:13px}
+.dl-badge{font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:10px}
+.dl-urgent{background:rgba(248,113,113,.15);color:var(--red)}
+.dl-soon{background:rgba(245,166,35,.15);color:var(--amber)}
+.dl-fine{background:rgba(61,207,142,.12);color:var(--green)}
+
+/* TIMER */
+.timer-big{font-family:var(--mono);font-size:56px;font-weight:600;text-align:center;letter-spacing:.03em;line-height:1}
+.timer-lbl{font-family:var(--mono);font-size:10px;color:var(--text3);text-align:center;letter-spacing:.1em;text-transform:uppercase;margin-top:6px}
+.ring-wrap{width:170px;height:170px;margin:0 auto 14px;position:relative}
+.ring-wrap svg{transform:rotate(-90deg)}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+
+/* STREAK */
+.streak{display:flex;gap:4px;flex-wrap:wrap}
+.s-day{width:20px;height:20px;border-radius:3px;background:var(--bg4);border:1px solid var(--border)}
+.s-day.hit{background:var(--green);border-color:var(--green)}
+.s-day.today{border-color:var(--accent)}
+
+/* PROGRESS */
+.prog{margin-bottom:11px}
+.prog-hd{display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px}
+.prog-bar{height:3px;background:var(--bg4);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;border-radius:2px;transition:width .4s}
+
+/* ALERT */
+.toast{position:fixed;top:18px;right:18px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:10px 16px;font-family:var(--mono);font-size:11px;color:var(--text);z-index:9999;transform:translateY(-8px);opacity:0;transition:all .25s;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* NOTIF BAR */
+.notif{background:rgba(240,82,82,.08);border:1px solid rgba(240,82,82,.2);border-radius:8px;padding:9px 14px;font-size:12px;color:var(--red);margin-bottom:12px;display:none;align-items:center;gap:8px}
+.notif.show{display:flex}
+.notif2{background:rgba(139,124,246,.08);border:1px solid rgba(139,124,246,.2);border-radius:8px;padding:9px 14px;font-size:12px;color:var(--accent2);margin-bottom:12px}
+
+/* COACH OUTPUT (session injected) */
+.injected-schedule .block-injected{border-left:3px solid var(--accent)}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-name">EXEC OS</div>
+    <div class="logo-sub">Ashea Kanji</div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">Command</div>
+    <div class="nav-item active" onclick="go('today')"><div class="nav-dot" style="background:var(--accent)"></div>Today's Plan</div>
+    <div class="nav-item" onclick="go('timer')"><div class="nav-dot" style="background:var(--amber)"></div>Focus Timer</div>
+    <div class="nav-item" onclick="go('coach')"><div class="nav-dot" style="background:var(--blue)"></div>Coach</div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">SIF</div>
+    <div class="nav-item" onclick="go('sif')"><div class="nav-dot" style="background:#f7c563"></div>Stock Tracker</div>
+    <div class="nav-item" onclick="go('deadlines')"><div class="nav-dot" style="background:var(--red)"></div>Deadlines</div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-group-label">Progress</div>
+    <div class="nav-item" onclick="go('review')"><div class="nav-dot" style="background:var(--green)"></div>Nightly Review</div>
+    <div class="nav-item" onclick="go('habits')"><div class="nav-dot" style="background:var(--accent2)"></div>Habits</div>
+  </div>
+  <div class="sidebar-score">
+    <div class="score-lbl">Day Score</div>
+    <div class="score-val" id="sb-score">0%</div>
+    <div class="score-bar"><div class="score-fill" id="sb-fill" style="width:0%"></div></div>
+    <div class="clock" id="sb-clock">--:--</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- ═══ TODAY PAGE ═══ -->
+<div class="page active" id="page-today">
+  <div class="page-eyebrow">// todays_execution_plan</div>
+  <div class="page-title" id="today-headline">Loading...</div>
+
+  <div class="notif" id="urgent-bar">⚠ <span id="urgent-text"></span></div>
+
+  <!-- SESSION PLAN (injected by Claude each check-in) -->
+  <div class="card" id="session-plan-card">
+    <div class="card-label">Today's Schedule — Claude Generated</div>
+    <div id="session-meta" class="notif2" style="display:none"></div>
+    <div id="block-list">
+      <div style="color:var(--text3);font-size:13px;padding:8px 0">No schedule loaded. Check in with Claude to generate today's plan.</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn primary" onclick="startCurrentBlock()">Start Current Block →</button>
+      <button class="btn" onclick="resetBlocks()">Reset All</button>
+      <button class="btn green" onclick="markAllDone()">All Done ✓</button>
+    </div>
+  </div>
+
+  <!-- METRICS -->
+  <div class="g4" style="margin-bottom:12px">
+    <div class="metric"><div class="metric-v" id="m-done">0</div><div class="metric-l">Completed</div></div>
+    <div class="metric"><div class="metric-v" id="m-total">0</div><div class="metric-l">Total</div></div>
+    <div class="metric"><div class="metric-v" id="m-pct">0%</div><div class="metric-l">Score</div></div>
+    <div class="metric"><div class="metric-v" id="m-next" style="font-size:14px">—</div><div class="metric-l">Next Block</div></div>
+  </div>
+
+  <!-- COACH NOTE (injected) -->
+  <div class="card" id="coach-note-card" style="display:none">
+    <div class="card-label">Coach Note — From Your Last Check-In</div>
+    <div class="coach-box" id="coach-note-text"></div>
+  </div>
+
+  <!-- TODAY'S DEADLINES -->
+  <div class="card">
+    <div class="card-label">Deadlines On Radar</div>
+    <div id="today-dl">No urgent deadlines.</div>
+  </div>
+</div>
+
+<!-- ═══ TIMER PAGE ═══ -->
+<div class="page" id="page-timer">
+  <div class="page-eyebrow">// focus_mode</div>
+  <div class="page-title">Focus Timer</div>
+  <div class="g2">
+    <div class="card" style="text-align:center">
+      <div class="card-label">Active Session</div>
+      <div class="ring-wrap">
+        <svg width="170" height="170" viewBox="0 0 170 170">
+          <circle cx="85" cy="85" r="74" fill="none" stroke="var(--bg4)" stroke-width="6"/>
+          <circle id="ring-fill" cx="85" cy="85" r="74" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round"
+            stroke-dasharray="464.96" stroke-dashoffset="0"/>
+        </svg>
+        <div class="ring-center">
+          <div id="t-display" style="font-family:var(--mono);font-size:34px;font-weight:600">25:00</div>
+          <div id="t-label" style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-top:3px">Ready</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button class="btn primary" id="t-btn" onclick="toggleTimer()">Start</button>
+        <button class="btn" onclick="resetTimer()">Reset</button>
+        <button class="btn green" onclick="doneTimer()">Done ✓</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">Quick Launch</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px">
+        <button class="btn" onclick="setT(10,'Starter Sprint')">10 min — Starter</button>
+        <button class="btn" onclick="setT(25,'Deep Work')">25 min — Deep work</button>
+        <button class="btn" onclick="setT(45,'Full Block')">45 min — Block</button>
+        <button class="btn" onclick="setT(60,'Power Hour')">60 min — Power hour</button>
+        <button class="btn" onclick="setT(5,'Break')">5 min — Break</button>
+        <button class="btn" onclick="setT(15,'Review')">15 min — Review</button>
+      </div>
+      <div class="card-label">Custom</div>
+      <div style="display:flex;gap:7px;align-items:flex-end">
+        <div style="flex:1"><label>Minutes</label><input type="text" id="c-mins" placeholder="20"></div>
+        <div style="flex:2"><label>Label</label><input type="text" id="c-label" placeholder="Excel modeling"></div>
+        <button class="btn primary" onclick="setCustom()">Set</button>
+      </div>
+      <div style="margin-top:14px">
+        <div class="card-label">Session Log</div>
+        <div id="t-log" style="font-family:var(--mono);font-size:10px;color:var(--text3);line-height:2.1">No sessions yet.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ COACH PAGE ═══ -->
+<div class="page" id="page-coach">
+  <div class="page-eyebrow">// anti_procrastination</div>
+  <div class="page-title">Coach Interface</div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-label">What's happening</div>
+      <div class="chips">
+        <button class="chip" onclick="fireCoach('stuck')">Stuck</button>
+        <button class="chip" onclick="fireCoach('drift')">Drifting</button>
+        <button class="chip" onclick="fireCoach('overthink')">Overthinking</button>
+        <button class="chip" onclick="fireCoach('tired')">Low energy</button>
+        <button class="chip" onclick="fireCoach('procrastinate')">Procrastinating</button>
+        <button class="chip" onclick="fireCoach('distracted')">Distracted</button>
+        <button class="chip" onclick="fireCoach('lost')">Lost momentum</button>
+        <button class="chip" onclick="fireCoach('next')">What's next?</button>
+      </div>
+      <div class="field">
+        <label>Describe what's happening</label>
+        <textarea id="coach-input" rows="3" placeholder="Be specific. One sentence is enough."></textarea>
+      </div>
+      <div style="display:flex;gap:7px">
+        <button class="btn primary" onclick="doCoach()">Get Direction →</button>
+        <button class="btn" onclick="do10Min()">10-Min Starter →</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">Direction</div>
+      <div class="coach-box" id="coach-out">Select a situation or describe what's happening. You'll get an immediate, specific action.</div>
+      <div style="margin-top:12px">
+        <div class="card-label">10-Min Starter Task</div>
+        <div class="coach-note" id="starter-out">Hit "10-Min Starter" to break the paralysis with an immediate action.</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-label">Rules You Agreed To</div>
+    <div class="g3">
+      <div class="coach-note">No hiding in planning. Output only.</div>
+      <div class="coach-note">Complete block one before block two exists.</div>
+      <div class="coach-note">Reps compound. Motivation does not.</div>
+      <div class="coach-note">Prime hours = highest-value tasks. No exceptions.</div>
+      <div class="coach-note">Procrastination is a decision. So is executing.</div>
+      <div class="coach-note">One tab. One task. One block at a time.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SIF PAGE ═══ -->
+<div class="page" id="page-sif">
+  <div class="page-eyebrow">// sif_research_tracker</div>
+  <div class="page-title">Student Investment Fund — Stock Coverage</div>
+  <div class="notif2" style="margin-bottom:12px">📊 45 min/day on equity research. Rotate 1–2 stocks per session. Build a 1-page thesis for each name.</div>
+  <div class="stock-grid" id="stock-grid"></div>
+  <div class="card" style="margin-top:12px">
+    <div class="card-label">Research Checklist — Per Stock</div>
+    <div class="g2">
+      <div style="font-size:12px;color:var(--text2);line-height:2.1">
+        <div>□ 10-K / Annual Report</div><div>□ Most recent 10-Q</div>
+        <div>□ Last earnings call transcript</div><div>□ Management guidance / forward outlook</div>
+        <div>□ Sell-side initiation report</div>
+      </div>
+      <div style="font-size:12px;color:var(--text2);line-height:2.1">
+        <div>□ Competitive positioning / moat analysis</div><div>□ Key risks (macro, sector, company)</div>
+        <div>□ Valuation comps (EV/EBITDA, P/E, EV/Sales)</div><div>□ Bull / bear case summary</div>
+        <div>□ 1-page thesis draft</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-label">Today's Research Focus</div>
+    <div id="sif-focus" style="font-size:13px;color:var(--text2)">Check in with Claude to get today's assigned stock.</div>
+  </div>
+</div>
+
+<!-- ═══ DEADLINES PAGE ═══ -->
+<div class="page" id="page-deadlines">
+  <div class="page-eyebrow">// deadline_enforcer</div>
+  <div class="page-title">Deadlines & Accountability</div>
+  <div class="card">
+    <div class="card-label">Add Deadline</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:flex-end">
+      <div><label>Task</label><input type="text" id="dl-name" placeholder="e.g. ASML thesis draft"></div>
+      <div><label>Due Date (YYYY-MM-DD)</label><input type="text" id="dl-date" placeholder="2025-05-15"></div>
+      <div><label>Category</label>
+        <select id="dl-cat">
+          <option>SIF Research</option><option>Financial Modeling</option>
+          <option>PowerPoint</option><option>Typing Goal</option>
+          <option>Career / Application</option><option>Other</option>
+        </select>
+      </div>
+      <button class="btn primary" onclick="addDL()" style="margin-bottom:0">Add →</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-label">Active Deadlines</div>
+    <div id="dl-list"><div style="font-size:13px;color:var(--text3)">No deadlines yet.</div></div>
+  </div>
+  <div class="card">
+    <div class="card-label">SIF Default Milestones (add with real dates)</div>
+    <div style="font-family:var(--mono);font-size:11px;color:var(--text2);line-height:2.2">
+      → 1 stock thesis per week (rotate ASML → AMD → ARM → COST → CELH → XCEL → SNOW → CEG → PANW)<br>
+      → Valuation model per stock (DCF or comps) within 2 weeks of thesis<br>
+      → Earnings call notes within 48h of each report<br>
+      → Sector memo: Semis | Cloud | Consumer | Utilities | Cybersec<br>
+      → Final pitch deck: 10 slides, buy/sell/hold recommendation
+    </div>
+  </div>
+</div>
+
+<!-- ═══ REVIEW PAGE ═══ -->
+<div class="page" id="page-review">
+  <div class="page-eyebrow">// nightly_debrief</div>
+  <div class="page-title">Nightly Review</div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-label">Tonight's Debrief</div>
+      <div class="field"><label>What got done?</label><textarea id="rv-done" rows="3" placeholder="Blocks completed, wins, output produced..."></textarea></div>
+      <div class="field"><label>What slipped? Why?</label><textarea id="rv-slip" rows="3" placeholder="Be honest. No judgment. Just data."></textarea></div>
+      <div class="field"><label>Tomorrow's first action (specific)</label><textarea id="rv-tom" rows="2" placeholder="The first thing I do when I sit down is..."></textarea></div>
+      <button class="btn primary" onclick="submitReview()" style="width:100%">Lock In →</button>
+    </div>
+    <div class="card">
+      <div class="card-label">Skill Progress — Today</div>
+      <div id="skill-progress"></div>
+      <div style="height:14px"></div>
+      <div class="card-label">30-Day Streak</div>
+      <div class="streak" id="streak-row"></div>
+      <div style="margin-top:14px">
+        <div class="card-label">Coach Feedback</div>
+        <div class="coach-box" id="rv-coach" style="font-size:12px">Submit your review to get feedback.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ HABITS PAGE ═══ -->
+<div class="page" id="page-habits">
+  <div class="page-eyebrow">// habit_tracker</div>
+  <div class="page-title">Daily Habits</div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-label">Today</div>
+      <div id="habit-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-label">7-Day View</div>
+      <div id="habit-week"></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end main -->
+</div><!-- end layout -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── STORAGE ───
+const _mem = {};
+const S = {
+  get: k => {
+    try { const v = localStorage.getItem('eos_'+k); return v ? JSON.parse(v) : (_mem[k]||null); }
+    catch { return _mem[k]||null; }
+  },
+  set: (k,v) => {
+    _mem[k] = v;
+    try { localStorage.setItem('eos_'+k, JSON.stringify(v)); } catch {}
+  }
+};
+const today = () => new Date().toISOString().split('T')[0];
+
+// ─── NAV ───
+const PAGES = ['today','timer','coach','sif','deadlines','review','habits'];
+function go(id) {
+  PAGES.forEach(p => {
+    document.getElementById('page-'+p).classList.toggle('active', p===id);
+  });
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const map = {today:0,timer:1,coach:2,sif:3,deadlines:4,review:5,habits:6};
+  if(map[id]!==undefined) document.querySelectorAll('.nav-item')[map[id]].classList.add('active');
+  if(id==='sif') renderSIF();
+  if(id==='deadlines') renderDL();
+  if(id==='review') { renderStreak(); renderSkillProgress(); }
+  if(id==='habits') renderHabits();
+}
+
+// ─── CLOCK ───
+function tick() {
+  const n = new Date();
+  const t = n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('sb-clock').textContent = t;
+}
+setInterval(tick, 30000); tick();
+
+// ─── TODAY HEADLINE ───
+const dn = new Date();
+document.getElementById('today-headline').textContent =
+  dn.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+
+// ─── TOAST ───
+function toast(msg, d=2500) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), d);
+}
+
+// ─── BLOCKS ─── (populated by Claude each check-in via SESSION_DATA below)
+let blocks = [];
+
+function fmtTime(mins) {
+  const h = Math.floor(mins/60)%24;
+  const m = mins%60;
+  const ap = h>=12?'PM':'AM';
+  return (h%12||12)+':'+(m<10?'0':'')+m+' '+ap;
+}
+
+function renderBlocks() {
+  const saved = S.get('blocks_'+today());
+  if(saved) blocks = saved;
+  const el = document.getElementById('block-list');
+  if(!blocks.length) {
+    el.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:8px 0">No schedule loaded. Check in with Claude to generate today\'s plan.</div>';
+    updateMetrics(); return;
+  }
+  const nowM = new Date().getHours()*60 + new Date().getMinutes();
+  el.innerHTML = blocks.map((b,i) => {
+    const isCur = !b.done && b.startMin <= nowM && nowM < b.startMin+b.dur;
+    const isOver = !b.done && b.startMin+b.dur < nowM;
+    return `<div class="block ${b.type}${b.done?' done':''}${isCur?' current':''}${isOver?' overdue':''}" onclick="toggleBlock(${i})">
+      <div class="block-check">${b.done?'✓':''}</div>
+      <div class="block-time">${b.start}</div>
+      <span class="tag ${b.type}">${b.tag}</span>
+      <div class="block-name">${b.name}${isCur?` <span class="live-pill">● LIVE</span>`:''}</div>
+      <div class="block-dur">${b.dur}m</div>
+    </div>`;
+  }).join('');
+  updateMetrics();
+}
+
+function toggleBlock(i) {
+  blocks[i].done = !blocks[i].done;
+  S.set('blocks_'+today(), blocks);
+  renderBlocks();
+  updateHabitFromBlock(blocks[i]);
+}
+
+function resetBlocks() { blocks.forEach(b=>b.done=false); S.set('blocks_'+today(),blocks); renderBlocks(); }
+function markAllDone() { blocks.forEach(b=>b.done=true); S.set('blocks_'+today(),blocks); renderBlocks(); }
+
+function markCurrentBlock() {
+  // intentionally lightweight - full render only on user action
+}
+
+function updateMetrics() {
+  const done = blocks.filter(b=>b.done).length;
+  const total = blocks.length;
+  const pct = total ? Math.round(done/total*100) : 0;
+  document.getElementById('m-done').textContent = done;
+  document.getElementById('m-total').textContent = total;
+  document.getElementById('m-pct').textContent = pct+'%';
+  const nxt = blocks.find(b=>!b.done);
+  document.getElementById('m-next').textContent = nxt ? nxt.tag : (done===total&&total>0?'Done!':'—');
+  document.getElementById('sb-score').textContent = pct+'%';
+  document.getElementById('sb-fill').style.width = pct+'%';
+}
+
+function startCurrentBlock() {
+  const nowM = new Date().getHours()*60+new Date().getMinutes();
+  const cur = blocks.find(b=>!b.done && b.startMin<=nowM && nowM<b.startMin+b.dur)
+           || blocks.find(b=>!b.done);
+  if(cur) { setT(cur.dur, cur.name); go('timer'); }
+}
+
+// ─── SESSION INJECTION ─── Claude writes to this function each check-in
+function loadSession(data) {
+  // data = { date, time, energy, mood, coachNote, sifFocus, blocks: [...] }
+  if(!data) return;
+  blocks = data.blocks || [];
+  S.set('blocks_'+today(), blocks);
+
+  const meta = document.getElementById('session-meta');
+  meta.style.display = 'block';
+  meta.textContent = `Check-in: ${data.time} | Energy: ${data.energy}/10 | Mood: ${data.mood} | SIF Focus: ${data.sifFocus||'—'}`;
+
+  if(data.coachNote) {
+    document.getElementById('coach-note-card').style.display = 'block';
+    document.getElementById('coach-note-text').textContent = data.coachNote;
+  }
+
+  if(data.sifFocus) {
+    document.getElementById('sif-focus').textContent = `Today: ${data.sifFocus} — ${data.sifInstruction||'Read earnings call + take bull/bear/risk notes.'}`;
+  }
+
+  renderBlocks();
+  checkUrgentDL();
+}
+
+// ─── TIMER ───
+let tTotal=25*60, tLeft=25*60, tRunning=false, tInt=null;
+let tLog = S.get('tlog_'+today()) || [];
+
+function setT(mins, label) {
+  clearInterval(tInt); tRunning=false;
+  tTotal=mins*60; tLeft=tTotal;
+  document.getElementById('t-btn').textContent='Start';
+  document.getElementById('t-label').textContent=label;
+  updateTDisplay();
+}
+function setCustom() {
+  const m=parseInt(document.getElementById('c-mins').value)||25;
+  const l=document.getElementById('c-label').value||'Focus';
+  setT(m,l);
+}
+function toggleTimer() {
+  if(tRunning) { clearInterval(tInt); tRunning=false; document.getElementById('t-btn').textContent='Resume'; }
+  else {
+    tRunning=true; document.getElementById('t-btn').textContent='Pause';
+    tInt=setInterval(()=>{ tLeft--; updateTDisplay(); if(tLeft<=0){ clearInterval(tInt); tRunning=false; document.getElementById('t-btn').textContent='Start'; logSession(); toast('⏱ Block complete!'); }},1000);
+  }
+}
+function resetTimer() { clearInterval(tInt); tRunning=false; tLeft=tTotal; document.getElementById('t-btn').textContent='Start'; updateTDisplay(); }
+function doneTimer() { clearInterval(tInt); tRunning=false; logSession(); toast('Block logged.'); }
+function updateTDisplay() {
+  const m=Math.floor(tLeft/60), s=tLeft%60;
+  document.getElementById('t-display').textContent=m+':'+(s<10?'0':'')+s;
+  const pct=(tTotal-tLeft)/tTotal;
+  const c=2*Math.PI*74;
+  document.getElementById('ring-fill').style.strokeDashoffset=c*(1-pct);
+}
+function logSession() {
+  const l=document.getElementById('t-label').textContent;
+  const m=Math.round(tTotal/60);
+  const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  tLog.push({label:l,mins:m,time:t}); S.set('tlog_'+today(),tLog);
+  document.getElementById('t-log').innerHTML=tLog.slice(-6).map(s=>`<div>${s.time} — ${s.label} (${s.mins}m)</div>`).join('');
+}
+// init log display
+document.getElementById('t-log').innerHTML = tLog.length ? tLog.slice(-6).map(s=>`<div>${s.time} — ${s.label} (${s.mins}m)</div>`).join('') : 'No sessions yet.';
+
+// ─── COACH ───
+const COACH = {
+  stuck:["Timer on. 10 minutes. Open the task and write the first sentence or cell. Go.","You are not stuck. You are avoiding. Identify the exact step you are resisting and do only that.","Stop negotiating. 10-minute timer. Begin imperfectly. Fix it later."],
+  drift:["Close every tab that isn't your current block. Return immediately.","Name your current block, open it, and work for 15 minutes straight. Now.","Drift is data. Reset. Close distractions. Write your next single action and execute."],
+  overthink:["You don't need more information. You need output. Stop reading. Start producing.","Overthinking is planning theater. Pick the first step. Do it.","You need reps, not clarity. Begin. The thinking gets clearer through doing."],
+  tired:["10 minutes of movement. Then 25 minutes of output. No exceptions.","Low energy = shorter blocks. 20 minutes of work beats 0.","This is when discipline separates you. 30 minutes of imperfect work today."],
+  procrastinate:["Open the document you've been avoiding. That's it. Just open it.","Set a timer for 5 minutes. Begin. You cannot stop until it rings.","Your finance career is built on reps. Start one now."],
+  distracted:["Phone face-down. One tab. Current task only.","Distraction is a choice. Make a different one. Close it all.","You are not multitasking — you are doing nothing well. One thing. Execute."],
+  lost:["Momentum is rebuilt one completed action at a time. Pick the smallest task and finish it.","Start doing. Even 15 minutes of focused output restores the flywheel.","The gap is closed by execution, not intention. Start now."],
+  next:["Check your schedule. Find the next incomplete block. Begin. That's the entire answer.","Next block. Timer set. Phone away. Start.","Your next block is waiting. Every minute you spend asking is a minute not executing."]
+};
+const STARTERS = {
+  stuck:"Write what you're stuck on in one sentence. Then write the simplest next step. Go.",
+  drift:"Name your current block out loud. Open the file. Set a 10-min timer. Start.",
+  overthink:"Write one sentence summarizing what you're overthinking. That's it. Just one sentence.",
+  tired:"Stand up. Walk for 5 minutes. Come back and commit to 20 minutes of output.",
+  procrastinate:"Open the exact file or page you've been avoiding. You have 30 seconds to do this.",
+  distracted:"Close every tab except your work. Set a 10-min timer. Begin.",
+  lost:"Complete one small task right now. Anything. Rebuild the momentum with a win.",
+  next:"Look at your schedule. Open the next block's file. Begin. That's it.",
+  default:"Set a 5-minute timer. Work on your current block. Do not stop until it rings."
+};
+let activeCoach='';
+function fireCoach(type) {
+  activeCoach=type;
+  const lines=COACH[type];
+  document.getElementById('coach-out').textContent=lines[Math.floor(Math.random()*lines.length)];
+  document.querySelectorAll('#page-coach .chip').forEach(c=>c.classList.remove('active'));
+}
+function doCoach() {
+  const inp=document.getElementById('coach-input').value.trim();
+  if(inp) document.getElementById('coach-out').textContent="Heard. Stop analyzing. Take the next physical action available to you. Set a 10-minute timer, do only that action. The detail you've described is real — the only thing that changes it is output. Timer. Now.";
+  else if(activeCoach) fireCoach(activeCoach);
+}
+function do10Min() {
+  const task=STARTERS[activeCoach]||STARTERS.default;
+  document.getElementById('starter-out').textContent=task;
+  setT(10,'10-Min Starter');
+}
+
+// ─── SIF ───
+const SIF_DATA = [
+  {ticker:'ASML',name:'ASML Holding',sector:'Semis / Litho Equipment',notes:'',status:'todo'},
+  {ticker:'AMD',name:'Advanced Micro Devices',sector:'Semis / CPU-GPU',notes:'',status:'todo'},
+  {ticker:'ARM',name:'Arm Holdings',sector:'Semis / IP Licensing',notes:'',status:'todo'},
+  {ticker:'COST',name:'Costco Wholesale',sector:'Consumer / Retail',notes:'',status:'todo'},
+  {ticker:'CELH',name:'Celsius Holdings',sector:'Consumer / Beverages',notes:'',status:'todo'},
+  {ticker:'XCEL',name:'Xcel Energy',sector:'Utilities / Renewables',notes:'',status:'todo'},
+  {ticker:'SNOW',name:'Snowflake',sector:'Cloud / Data Platforms',notes:'',status:'todo'},
+  {ticker:'CEG',name:'Constellation Energy',sector:'Utilities / Nuclear',notes:'',status:'todo'},
+  {ticker:'PANW',name:'Palo Alto Networks',sector:'Cybersecurity',notes:'',status:'todo'},
+];
+function renderSIF() {
+  const saved = S.get('sif') || SIF_DATA;
+  const statusMap = {todo:'todo',wip:'wip',drafted:'drafted',complete:'done2'};
+  const statusLabel = {todo:'To Do',wip:'In Progress',drafted:'Thesis Drafted',complete:'Complete'};
+  document.getElementById('stock-grid').innerHTML = saved.map((s,i)=>`
+    <div class="stock-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="stock-ticker">${s.ticker}</div>
+          <div class="stock-co">${s.name}</div>
+          <div class="stock-sector">${s.sector}</div>
+        </div>
+        <select style="font-size:10px;padding:3px 6px;width:auto;font-family:var(--mono)" onchange="updateSIF(${i},this.value)">
+          <option value="todo"${s.status==='todo'?' selected':''}>To Do</option>
+          <option value="wip"${s.status==='wip'?' selected':''}>In Progress</option>
+          <option value="drafted"${s.status==='drafted'?' selected':''}>Drafted</option>
+          <option value="complete"${s.status==='complete'?' selected':''}>Complete</option>
+        </select>
+      </div>
+      <span class="spill ${statusMap[s.status]||'todo'}">${statusLabel[s.status]||'To Do'}</span>
+      <textarea style="width:100%;margin-top:8px;font-size:11px;padding:6px 8px;min-height:54px;resize:vertical;background:var(--bg4);border:1px solid var(--border);border-radius:5px;color:var(--text2);font-family:var(--sans)" placeholder="Notes, thesis points, key metrics..." oninput="updateSIFnotes(${i},this.value)">${s.notes||''}</textarea>
+    </div>`).join('');
+}
+function updateSIF(i,v) { const d=S.get('sif')||SIF_DATA; d[i].status=v; S.set('sif',d); renderSIF(); }
+function updateSIFnotes(i,v) { const d=S.get('sif')||SIF_DATA; d[i].notes=v; S.set('sif',d); }
+
+// ─── DEADLINES ───
+let dls = S.get('deadlines') || [];
+function daysTo(ds) { const t=new Date(ds),n=new Date(); n.setHours(0,0,0,0); return Math.ceil((t-n)/864e5); }
+function addDL() {
+  const n=document.getElementById('dl-name').value.trim();
+  const d=document.getElementById('dl-date').value.trim();
+  const c=document.getElementById('dl-cat').value;
+  if(!n||!d){toast('Enter name and date.');return;}
+  dls.push({name:n,date:d,cat:c,done:false});
+  dls.sort((a,b)=>a.date.localeCompare(b.date));
+  S.set('deadlines',dls); document.getElementById('dl-name').value=''; document.getElementById('dl-date').value='';
+  renderDL(); toast('Deadline added.');
+}
+function toggleDL(i) { dls[i].done=!dls[i].done; S.set('deadlines',dls); renderDL(); }
+function renderDL() {
+  dls=S.get('deadlines')||[];
+  const el=document.getElementById('dl-list');
+  if(!dls.length){el.innerHTML='<div style="font-size:13px;color:var(--text3)">No deadlines yet.</div>';return;}
+  el.innerHTML=dls.map((d,i)=>{
+    const days=daysTo(d.date);
+    const cls=days<=2?'dl-urgent':days<=7?'dl-soon':'dl-fine';
+    const lbl=days<0?'OVERDUE':days===0?'TODAY':days===1?'TOMORROW':days+'d left';
+    return `<div class="dl-row${d.done?' done':''}">
+      <div class="dl-date">${d.date}</div>
+      <div class="dl-name">${d.name}<br><span style="font-size:10px;color:var(--text3)">${d.cat}</span></div>
+      <span class="dl-badge ${cls}">${lbl}</span>
+      <button class="btn" style="font-size:9px;padding:4px 9px" onclick="toggleDL(${i})">${d.done?'Undo':'Done'}</button>
+    </div>`;
+  }).join('');
+  checkUrgentDL();
+}
+function checkUrgentDL() {
+  dls=S.get('deadlines')||[];
+  const urgent=dls.filter(d=>!d.done&&daysTo(d.date)<=2);
+  const bar=document.getElementById('urgent-bar');
+  if(urgent.length){document.getElementById('urgent-text').textContent='Deadline: '+urgent.map(d=>d.name+' ('+d.date+')').join(' | ');bar.classList.add('show');}
+  else bar.classList.remove('show');
+  // today's deadlines on schedule page
+  const td=document.getElementById('today-dl');
+  if(td){
+    const u2=dls.filter(d=>!d.done&&daysTo(d.date)<=1);
+    td.innerHTML=u2.length?u2.map(d=>`<div style="color:var(--red);font-family:var(--mono);font-size:11px;margin-bottom:3px">⚠ ${d.name} — ${d.date}</div>`).join(''):'<div style="font-size:13px;color:var(--text3)">No urgent deadlines.</div>';
+  }
+}
+
+// ─── REVIEW ───
+function submitReview() {
+  const done=document.getElementById('rv-done').value.trim();
+  const slip=document.getElementById('rv-slip').value.trim();
+  const tom=document.getElementById('rv-tom').value.trim();
+  const hist=S.get('reviews')||[];
+  hist.push({date:today(),done,slip,tomorrow:tom});
+  S.set('reviews',hist);
+  const msgs=["Logged. Tomorrow starts with: \""+tom+"\". Execute that first. No warm-up. Straight to work.","Saved. The slip is data, not failure. Fix the system. First win tomorrow: \""+tom+"\"","Locked. One slip, one win — that's the real scoreboard. \""+tom+"\" goes first tomorrow."];
+  document.getElementById('rv-coach').textContent=msgs[Math.floor(Math.random()*msgs.length)];
+  const hb=S.get('habits_'+today())||{};hb.review=true;S.set('habits_'+today(),hb);
+  renderStreak(); toast('Review locked in.');
+}
+function renderStreak() {
+  const hist=(S.get('reviews')||[]).map(h=>h.date);
+  let html='';
+  for(let i=29;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const ds=d.toISOString().split('T')[0];
+    html+=`<div class="s-day${hist.includes(ds)?' hit':''}${i===0?' today':''}" title="${ds}"></div>`;
+  }
+  document.getElementById('streak-row').innerHTML=html;
+}
+function renderSkillProgress() {
+  const b=S.get('blocks_'+today())||[];
+  const skills=[{n:'Speed Typing',t:'typing',c:'var(--accent)'},{n:'Modeling',t:'modeling',c:'var(--green)'},{n:'PowerPoint',t:'pptx',c:'var(--amber)'},{n:'Research',t:'reading',c:'var(--blue)'}];
+  document.getElementById('skill-progress').innerHTML=skills.map(s=>{
+    const done=b.filter(x=>x.type===s.t&&x.done).length;
+    const total=b.filter(x=>x.type===s.t).length||1;
+    const pct=Math.round(done/total*100);
+    return `<div class="prog"><div class="prog-hd"><span>${s.n}</span><span>${pct}%</span></div><div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${s.c}"></div></div></div>`;
+  }).join('');
+}
+
+// ─── HABITS ───
+const HABITS=[{name:'Speed Typing — 60 min',key:'typing'},{name:'Financial Modeling reps',key:'modeling'},{name:'PowerPoint / slide reps',key:'pptx'},{name:'Read equity research',key:'reading'},{name:'Fitness / movement',key:'fitness'},{name:'Nightly review done',key:'review'}];
+function renderHabits() {
+  const saved=S.get('habits_'+today())||{};
+  document.getElementById('habit-list').innerHTML=HABITS.map((h,i)=>`
+    <div class="block${saved[h.key]?' done':''}" onclick="toggleHabit('${h.key}')">
+      <div class="block-check" style="font-size:9px">${saved[h.key]?'✓':''}</div>
+      <div class="block-name">${h.name}</div>
+    </div>`).join('');
+  let whtml='';
+  for(let i=6;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const ds=d.toISOString().split('T')[0];
+    const sv=S.get('habits_'+ds)||{};
+    const cnt=Object.values(sv).filter(Boolean).length;
+    const day=d.toLocaleDateString('en-US',{weekday:'short'});
+    whtml+=`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-family:var(--mono);font-size:11px">${day}</span><span style="font-family:var(--mono);font-size:11px;color:${cnt>=5?'var(--green)':cnt>=3?'var(--amber)':'var(--red)'}">${cnt}/${HABITS.length}</span></div>`;
+  }
+  document.getElementById('habit-week').innerHTML=whtml;
+}
+function toggleHabit(k) {
+  const saved=S.get('habits_'+today())||{};saved[k]=!saved[k];S.set('habits_'+today(),saved);renderHabits();
+}
+function updateHabitFromBlock(b) {
+  if(!b.done) return;
+  const map={typing:'typing',modeling:'modeling',pptx:'pptx',reading:'reading',fitness:'fitness'};
+  if(map[b.type]){const s=S.get('habits_'+today())||{};s[map[b.type]]=true;S.set('habits_'+today(),s);}
+}
+
+// ─── INIT ───
+renderBlocks();
+checkUrgentDL();
+
+// ══════════════════════════════════════════════════════════════
+// SESSION DATA — Claude rewrites this block each check-in
+// ══════════════════════════════════════════════════════════════
+loadSession({
+  date: "2025-04-26",
+  time: "14:34",
+  energy: 5,
+  mood: "Sluggish / Resistant",
+  sifFocus: "CEG — Constellation Energy",
+  sifInstruction: "Read Q4 2024 earnings call transcript. Take notes in 3 buckets: Bull case, Bear case, Key risks.",
+  coachNote: "Energy 5, mood resistant — this is actually fine. The plan is calibrated for low energy. Your only job right now is to get back from the barber and open keybr.com. One action. That's it. Stop negotiating with yourself before the day even starts.",
+  blocks: [
+    { name:"Barber — mental prep on CEG thesis", tag:"out", type:"transition", dur:100, start:"14:34", end:"16:15", startMin:874, done:false },
+    { name:"Transition reset — water, setup, close distractions", tag:"reset", type:"transition", dur:15, start:"16:15", end:"16:30", startMin:975, done:false },
+    { name:"Speed Typing Practice — keybr.com, non-stop reps", tag:"typing", type:"typing", dur:60, start:"16:30", end:"17:30", startMin:990, done:false },
+    { name:"SIF Research — CEG: earnings call + bull/bear/risk notes", tag:"reading", type:"reading", dur:45, start:"17:30", end:"18:15", startMin:1050, done:false },
+    { name:"Break — food, stretch, hard stop at 18:30", tag:"break", type:"break", dur:15, start:"18:15", end:"18:30", startMin:1095, done:false },
+    { name:"Financial Modeling — CEG + XCEL comps table in Excel", tag:"modeling", type:"modeling", dur:60, start:"18:30", end:"19:30", startMin:1110, done:false },
+    { name:"PowerPoint Reps — 3 slides: Title, Thesis, Valuation", tag:"pptx", type:"pptx", dur:30, start:"19:30", end:"20:00", startMin:1170, done:false },
+    { name:"Nightly Review — report back to Claude", tag:"review", type:"admin", dur:15, start:"20:00", end:"20:15", startMin:1200, done:false }
+  ]
+});
+</script>
+</body>
+</html>
